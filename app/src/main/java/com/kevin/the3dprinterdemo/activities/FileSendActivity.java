@@ -14,6 +14,12 @@ import com.kevin.the3dprinterdemo.MainActivity;
 import com.kevin.the3dprinterdemo.R;
 import com.kevin.the3dprinterdemo.utils.Utils;
 
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+
 public class FileSendActivity extends AppCompatActivity implements View.OnClickListener{
 
     private Button btnChooseFile;
@@ -45,7 +51,13 @@ public class FileSendActivity extends AppCompatActivity implements View.OnClickL
                 choiceFile();
                 break;
             case R.id.btnSendFile:
-                sendFile();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        sendFile();
+                    }
+                }).start();
+
                 break;
         }
     }
@@ -62,7 +74,68 @@ public class FileSendActivity extends AppCompatActivity implements View.OnClickL
             Toast.makeText(FileSendActivity.this, "Please install a File Manager.", Toast.LENGTH_SHORT).show();
         }
     }
+
+
     private void sendFile(){
+        int length = 0;
+        double sumL = 0 ;
+        byte[] sendBytes = null;
+        Socket socket = null;
+        DataOutputStream dos = null;
+        FileInputStream fis = null;
+        boolean bool = false;
+        Log.e("SendFileActivity","into");
+
+        try {
+            File file = new File(tvShowFilePath.getText().toString()); //要传输的文件路径
+            long l = file.length();
+            socket = new Socket();
+            socket.connect(new InetSocketAddress("192.168.0.143", 9987));
+            dos = new DataOutputStream(socket.getOutputStream());
+            fis = new FileInputStream(file);
+            sendBytes = new byte[1024];
+            Log.e("SendFileActivity","len="+file.length());
+            System.out.println("file size = "+file.length());
+//            String cmd1 = "STOR OLD /sd/M32.gcode\n";
+//            String cmd2 = "SIZE " + file.length() + "\n";
+//            String cmd3 = "DONE\n";
+//            byte[] cmdByte1 = cmd1.getBytes();
+//            byte[] cmdByte2 = cmd2.getBytes();
+//            byte[] cmdByte3 = cmd3.getBytes();
+//            dos.write(cmdByte1, 0, cmdByte1.length);
+//            dos.flush();
+//            dos.write(cmdByte2, 0, cmdByte2.length);
+//            dos.flush();
+            while ((length = fis.read(sendBytes, 0, sendBytes.length)) > 0) {
+                sumL += length;
+                System.out.println("已传输："+((sumL/l)*100)+"%");
+                dos.write(sendBytes, 0, length);
+                dos.flush();
+            }
+//            dos.write(cmdByte3, 0, cmdByte3.length);
+            //虽然数据类型不同，但JAVA会自动转换成相同数据类型后在做比较
+            if(sumL==l){
+                bool = true;
+            }
+        }catch (Exception e) {
+            System.out.println("客户端文件传输异常");
+            bool = false;
+            e.printStackTrace();
+        } finally{
+            try {
+                if (dos != null)
+                    dos.close();
+                if (fis != null)
+                    fis.close();
+                if (socket != null)
+                    socket.close();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        System.out.println(bool?"成功":"失败");
+
+
 
     }
 

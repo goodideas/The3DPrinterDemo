@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    tools:context="com.kevin.the3dprinterdemo.activities.FileSendActivity">
+
+    <Button
+        android:id="@+id/btnChooseFile"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="选择文件" />
+
+    <TextView
+        android:id="@+id/tvShowFilePath"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btnChooseFile"
+        android:layout_margin="10dp"
+        android:text="" />
+
+    <Button
+        android:id="@+id/btnSendFile"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/tvShowFilePath"
+        android:text="发送文件" />
+
+    <TextView
+        android:id="@+id/tvShowStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btnSendFile"
+        android:layout_margin="10dp"
+        android:text="" />
+
+
+</RelativeLayout>

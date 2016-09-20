@@ -1,9 +1,9 @@
 package com.kevin.the3dprinterdemo.activities;
 
-import android.content.Context;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -25,6 +25,10 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setting);
 
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
         etIp = (EditText) findViewById(R.id.etIp);
         etPort = (EditText) findViewById(R.id.etPort);
         btnSave = (Button) findViewById(R.id.btnSave);
@@ -37,7 +41,7 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
     @Override
     protected void onStart() {
         super.onStart();
-        Utils.onSetIpAndPort(this, etIp, etPort, spHelper,null,null);
+        Utils.onSetIpAndPort(this, etIp, etPort, spHelper, null, null);
     }
 
 
@@ -46,6 +50,16 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
         spHelper.saveSpIp(etIp.getText().toString());
         spHelper.saveSpPort(etPort.getText().toString());
         Toast.makeText(SettingActivity.this, "保存成功", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override

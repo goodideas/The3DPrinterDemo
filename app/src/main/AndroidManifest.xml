@@ -3,6 +3,7 @@
     package="com.kevin.the3dprinterdemo">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
     <application
         android:allowBackup="true"
@@ -21,7 +22,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".activities.SettingActivity" />
-        <activity android:name=".activities.FileSendActivity"></activity>
+        <activity android:name=".activities.FileSendActivity" />
+        <activity android:name=".activities.PrintActivity"></activity>
     </application>
 
 </manifest>

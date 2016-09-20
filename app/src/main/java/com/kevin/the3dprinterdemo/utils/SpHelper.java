@@ -15,7 +15,7 @@ public class SpHelper {
     private static final String spFileName = "The3DPrinterConfig";
     private static final String spIp = "ip";
     private static final String spPort = "port";
-    private static final String spTest = "test";
+    private static final String spPrintFile = "printFile";
 
     private SharedPreferences configShared;
     private SharedPreferences.Editor configEditor;
@@ -57,14 +57,14 @@ public class SpHelper {
         configEditor.apply();
     }
 
-    //Test
-    public String getSpTest() {
-        return configShared.getString(spTest, null);
+    //printFile
+    public String getSpPrintFile() {
+        return configShared.getString(spPrintFile, null);
     }
 
-    public void saveSpTest(String test) {
+    public void saveSpPrintFile(String filePath) {
         configEditor = configShared.edit();
-        configEditor.putString(spTest, test);
+        configEditor.putString(spPrintFile, filePath);
         configEditor.apply();
     }
 

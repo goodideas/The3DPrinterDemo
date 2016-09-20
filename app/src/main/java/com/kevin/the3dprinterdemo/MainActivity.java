@@ -1,5 +1,7 @@
 package com.kevin.the3dprinterdemo;
 
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -7,6 +9,7 @@ import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
@@ -21,6 +24,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.kevin.the3dprinterdemo.activities.FileSendActivity;
+import com.kevin.the3dprinterdemo.activities.PrintActivity;
 import com.kevin.the3dprinterdemo.activities.SettingActivity;
 import com.kevin.the3dprinterdemo.utils.OnConnectListener;
 import com.kevin.the3dprinterdemo.utils.OnTcpReceive;
@@ -36,10 +40,12 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, View.OnClickListener {
     private static final String TAG = "MainActivity";
     private static final String LAST_PATH = "...";
+    private static final int REQUEST_CODE_PRINT = 0x124;
 
     private TextView tvShowIp;
     private TextView tvShowPort;
     private Button btnConnect;
+    private Button btnRoot;
 
     private ListView sdListView;
     private SpHelper spHelper;
@@ -47,9 +53,13 @@ public class MainActivity extends AppCompatActivity
     private TcpHelper tcpHelper;
     private boolean connected = true;
     private SdAdapter sdAdapter;
-    private String abPath="";
-    private String receiveData="";
+    private String abPath = "/";
+    private String receiveData = "";
     private String[] splits;
+    private boolean isLsCmd = false;
+    private String lastItem = "";
+    private List<String> tempList;
+    private long exitTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,34 +81,21 @@ public class MainActivity extends AppCompatActivity
         sdListView = (ListView) findViewById(R.id.sdListView);
         Utils.onSetIpAndPort(this, null, null, spHelper, tvShowIp, tvShowPort);
         spHelper = SpHelper.getSingleton(this);
-        Button btnTest = (Button) findViewById(R.id.btnTest);
-//        Button btnTest2 = (Button)findViewById(R.id.btnTest2);
-//        if (btnTest2 != null) {
-//            btnTest2.setOnClickListener(new View.OnClickListener() {
-//                @Override
-//                public void onClick(View v) {
-//
-//
-//                }
-//            });
-//        }
-        if (btnTest != null) {
-            btnTest.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    abPath = "";
-                    sList.clear();
-                    sList.add(LAST_PATH);
-                    sdAdapter.notifyDataSetChanged();
-                    if (tcpHelper != null) {
-                        tcpHelper.send("ls\r\n");
-                    }
+        btnRoot = (Button) findViewById(R.id.btnRoot);
 
+        btnRoot.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                abPath = "/";
+                sList.clear();
+                sList.add(LAST_PATH);
+                sdAdapter.notifyDataSetChanged();
+                if (tcpHelper != null) {
+                    tcpHelper.send("ls /\r\n");
                 }
-            });
-        }
 
-
+            }
+        });
 
 
         btnConnect.setOnClickListener(this);
@@ -110,11 +107,21 @@ public class MainActivity extends AppCompatActivity
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
                 String item = parent.getItemAtPosition(position).toString();
+                lastItem = item;
+                if (item.equals(LAST_PATH)) {
+                    String tempPath = pathBack(abPath);
+                    if (!TextUtils.isEmpty(tempPath)) {
+                        abPath = tempPath;
+                        if (abPath.length() >= 1 && abPath.substring(abPath.length() - 1).equalsIgnoreCase("/")) {
+                            tcpHelper.send("ls " + abPath.substring(0, abPath.length() - 1));
+                            tcpHelper.send("\r\n");
+                            Log.e(TAG, "click path=" + abPath.substring(0, abPath.length() - 1));
 
-                if(item.equals(LAST_PATH)){
-                    if(!TextUtils.isEmpty(pathBack(abPath))){
-                        abPath = pathBack(abPath);
-                    }else {
+                        }
+                        sList.clear();
+                        sList.add(LAST_PATH);
+                        sdAdapter.notifyDataSetChanged();
+                    } else {
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
@@ -123,20 +130,43 @@ public class MainActivity extends AppCompatActivity
                         });
                     }
 
-                }else{
-                    abPath = abPath + item;
-                }
+                } else {
 
-                if (tcpHelper != null) {
-                    if (abPath.length()>=1&&abPath.substring(abPath.length() - 1).equalsIgnoreCase("/")) {
-                        tcpHelper.send("ls " + abPath.substring(0, abPath.length() - 1));
-                        tcpHelper.send("\r\n");
+                    //判断是不是gcode文件
+                    if (item.length() >= 6 && item.substring(item.length() - 6, item.length()).equals(".gcode")) {
+                        //选择操作
+                        abPath = abPath + item;
+                        Log.e(TAG, "path=" + abPath);
+                        showDialogs("选择操作", item+" 为gcode文件,是否要打印？");
+
+                        //目录操作
+                    } else if (item.substring(item.length() - 1, item.length()).equals("/")) {
+                        abPath = abPath + item;
+                        if (tcpHelper != null) {
+                            if (abPath.length() >= 1 && abPath.substring(abPath.length() - 1).equalsIgnoreCase("/")) {
+                                tcpHelper.send("ls " + abPath.substring(0, abPath.length() - 1));
+                                tcpHelper.send("\r\n");
+                                Log.e(TAG, "click path=" + abPath.substring(0, abPath.length() - 1));
+
+                            }
+
+                        }
+                        sList.clear();
+                        sList.add(LAST_PATH);
+                        sdAdapter.notifyDataSetChanged();
+
+                    } else {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Utils.showInfo(MainActivity.this, "目标是不是目录！");
+                            }
+                        });
                     }
 
+
                 }
-                sList.clear();
-                sList.add(LAST_PATH);
-                sdAdapter.notifyDataSetChanged();
+
 
             }
         });
@@ -146,21 +176,22 @@ public class MainActivity extends AppCompatActivity
     /**
      * 根据路径来返回上一个路径
      * ex sd/gcode/ff/dfg/ ->  sd/gcode/ff/
+     *
      * @param data 绝对路径
      * @return 上一级路径 如果没有就返回NULL
      */
     private String pathBack(String data) {
-        String result= null;
+        String result = null;
         int count = 0;
         int l = data.length();
-        for(int i=l-1;i>=0;i--){
-            if(abPath.charAt(i)=='/'){
+        for (int i = l - 1; i >= 0; i--) {
+            if (abPath.charAt(i) == '/') {
                 count++;
-                if(count==1){
+                if (count == 1) {
                     result = "/";
                 }
-                if(count==2){
-                    result = abPath.substring(0,i+1);
+                if (count == 2) {
+                    result = abPath.substring(0, i + 1);
                     break;
                 }
 
@@ -214,17 +245,26 @@ public class MainActivity extends AppCompatActivity
             public void onReceive(byte[] receive) {
 
                 receiveData = asciiToString(receive);
-
+                Log.e(TAG, "接收的数据=" + receiveData);
                 if (!receiveData.contains("Smoothie command shell")) {
 
                     if (receiveData.contains("Could not open")) {
+                        if (lastItem.length() > 0) {
+                            if (abPath.contains(lastItem)) {
+                                abPath = abPath.substring(0, abPath.length() - lastItem.length());
+                            }
+                        }
+                        tcpHelper.send("ls /\r\n");
+
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 Utils.showInfo(MainActivity.this, receiveData);
+
                             }
                         });
                     } else {
+
                         splits = receiveData.split("\\n");
                         runOnUiThread(new Runnable() {
                             @Override
@@ -232,16 +272,24 @@ public class MainActivity extends AppCompatActivity
 
                                 for (String t : splits) {
                                     if (!t.equals("ok")) {
+                                        if(t.equals("/")){
+                                            String last = sList.get(sList.size()-1);
+                                            sList.remove(sList.size()-1);
+                                            sList.add(last+t);
+                                            continue;
+                                        }
                                         sList.add(t);
+
                                     }
                                 }
-
                                 sdAdapter = new SdAdapter(MainActivity.this, sList);
                                 sdListView.setAdapter(sdAdapter);
                                 sdAdapter.notifyDataSetChanged();
 
                             }
                         });
+
+
                     }
 
 
@@ -251,16 +299,98 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
-    private String asciiToString(byte[] da){
+
+    private String asciiToString(byte[] da) {
         StringBuilder sb = new StringBuilder();
         for (byte aDa : da) {
-
-            if ((int)aDa != 13) {
+//                Log.e(TAG,"char="+(int)aDa);
+            if ((int) aDa != 13) {
                 sb.append((char) aDa);
             }
         }
 //        Log.e(TAG, "sb.toString()=" + sb.toString().trim());
         return sb.toString().trim();
+    }
+
+
+//    private List<String> sdPathSort(List<String> list){
+//        tempList = list;
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//
+//                while(findSlash(tempList)!=-1){
+//                    int k = findSlash(tempList);
+//                    tempList = replace(tempList,k);
+//                }
+//            }
+//        }).start();
+//        return tempList;
+//    }
+//
+//    //找出斜杠
+//    private static int findSlash(List<String> list){
+//        int res = -1;
+//        int length = list.size();
+//        for(int i=0;i<length;i++){
+//            //找出单独的斜杠
+//            if(list.get(i).equals("/")){
+//                res = i;
+//                break;
+//            }
+//        }
+//
+//        return  res;
+//    }
+//
+//
+//    private static List<String> replace(List<String> list,int k) {
+//        List<String> mlist = new ArrayList<>();
+//        int len = list.size();
+//        for(int i = 0;i<len;i++){
+//            if((i+1 == k)){
+//                mlist.add(list.get(i)+list.get(i+1));
+//                continue;
+//            }
+//            if(i!=k)
+//                mlist.add(list.get(i));
+//
+//        }
+//        return mlist;
+//
+//    }
+//
+//
+
+
+    private void showDialogs(String title, String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle(title);
+        builder.setMessage(message);
+        builder.setNegativeButton("确定", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                spHelper.saveSpPrintFile(abPath);
+                startActivityForResult(new Intent(MainActivity.this, PrintActivity.class), REQUEST_CODE_PRINT);
+//                startActivity(new Intent(MainActivity.this, PrintActivity.class));
+                dialog.dismiss();
+            }
+        });
+
+        builder.setPositiveButton("取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (lastItem.length() > 0) {
+                    if (abPath.contains(lastItem)) {
+                        abPath = abPath.substring(0, abPath.length() - lastItem.length());
+                    }
+                }
+                dialog.dismiss();
+            }
+        });
+        builder.setCancelable(false);
+        builder.create();
+        builder.show();
     }
 
     @Override
@@ -283,7 +413,13 @@ public class MainActivity extends AppCompatActivity
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
-            super.onBackPressed();
+            if (System.currentTimeMillis() - exitTime > 2000) {
+                Toast.makeText(MainActivity.this,"再按一次退出",Toast.LENGTH_SHORT).show();
+                exitTime = System.currentTimeMillis();
+            } else {
+                finish();
+            }
+//            super.onBackPressed();
         }
     }
 
@@ -325,6 +461,24 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if(requestCode == REQUEST_CODE_PRINT){
+//            String tempPath = pathBack(abPath);
+//            if (!TextUtils.isEmpty(tempPath)) {
+//                abPath = tempPath;
+//            }
+
+            if (lastItem.length() > 0) {
+                if (abPath.contains(lastItem)) {
+                    abPath = abPath.substring(0, abPath.length() - lastItem.length());
+                }
+            }
+        }
+
+        super.onActivityResult(requestCode, resultCode, data);
+    }
 
 
 

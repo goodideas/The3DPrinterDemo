@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.kevin.the3dprinterdemo.R;
@@ -50,12 +51,24 @@ public class SdAdapter extends BaseAdapter {
             viewHolder = new ViewHolder();
             view = LayoutInflater.from(mContext).inflate(R.layout.sd_list_item_layout, null);
             viewHolder.tvPath = (TextView) view.findViewById(R.id.tvPath);
+            viewHolder.imageFile = (ImageView) view.findViewById(R.id.imageFile);
             view.setTag(viewHolder);
         } else {
             view = convertView;
             viewHolder = (ViewHolder) view.getTag();
         }
-        viewHolder.tvPath.setText(mlist.get(position));
+        String path = (String)getItem(position);
+        viewHolder.tvPath.setText(path);
+        if(!path.equals("...")){
+            if(path.substring(path.length()-1,path.length()).equals("/")){
+                viewHolder.imageFile.setImageResource(R.drawable.folder);
+            }else{
+                viewHolder.imageFile.setImageResource(R.drawable.file);
+            }
+        }else{
+            viewHolder.imageFile.setImageDrawable(null);
+        }
+
 
         return view;
     }
@@ -63,6 +76,7 @@ public class SdAdapter extends BaseAdapter {
 
     private class ViewHolder {
         private TextView tvPath;
+        private ImageView imageFile;
     }
 
 }

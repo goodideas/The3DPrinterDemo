@@ -48,12 +48,12 @@
             android:layout_marginStart="10dp"
             android:text="连接" />
         <Button
-            android:id="@+id/btnTest"
+            android:id="@+id/btnRoot"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
             android:layout_marginStart="10dp"
-            android:text="t1" />
+            android:text="根目录" />
 
         <!--<Button-->
             <!--android:id="@+id/btnTest2"-->
@@ -69,7 +69,7 @@
         android:id="@+id/sdListView"
         android:layout_below="@id/llConnect"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="match_parent"/>
 
 
 
